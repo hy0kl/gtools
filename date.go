@@ -197,7 +197,7 @@ var (
 
 func UnixMsec2Date(um int64, layout string) string {
 	timestamp := um / 1000
-	if timestamp <= 0 {
+	if timestamp < 0 {
 		return `-`
 	}
 

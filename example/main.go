@@ -21,4 +21,6 @@ func main() {
 	timeDiff := timeNow - timeOffset
 	humanTime := gtools.HumanUnixMillis(timeDiff)
 	log.Println(`timeOffset:`, timeOffset, `, offsetDate:`, offsetDate, `, humanTime:`, humanTime)
+
+	log.Println("Unix Timestamp 0 is:", gtools.UnixMsec2Date(0, `Y-m-d H:i:s`))
 }
