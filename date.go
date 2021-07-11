@@ -25,10 +25,16 @@ func RFC3339TimeTransfer(datetime string) int64 {
 	return timestamp
 }
 
-// GetUnixMillis 取当前系统时间的毫秒
-func GetUnixMillis() int64 {
+// UnixMillis 取当前系统时间的毫秒
+func UnixMillis() int64 {
 	t := time.Now()
 	return t.UnixNano() / 1000000
+}
+
+// GetUnixMillis
+// Deprecated: Use UnixMillis instead
+func GetUnixMillis() int64 {
+	return UnixMillis()
 }
 
 // NaturalDay 自然日的0点

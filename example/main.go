@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"log"
+	"sync"
+	"time"
 
 	"github.com/hy0kl/gtools"
 )
@@ -26,4 +29,41 @@ func main() {
 	url := `https://cn.bing.com/`
 	code, respHeader, respBody, err := gtools.SimpleHttpClient(gtools.HttpMethodGet, url, gtools.DefaultFormReqHeaders(), "", gtools.DefaultHttpTimeout())
 	log.Printf(`code: %d, header: %v, body: %s, err: %v`, code, respHeader, gtools.SubString(string(respBody), 0, 128), err)
+
+	exited := make(chan struct{})
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	gtools.ClearOnSignal(func() {
+		log.Print(`exit signal received`)
+		cancelFunc()
+		close(exited)
+	})
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func(ctx context.Context, wg *sync.WaitGroup) {
+		defer wg.Done()
+
+		var i int64
+		for {
+			select {
+			case <-ctx.Done():
+				log.Print(`ctx done, i will exit`)
+				return
+
+			case <-exited:
+				log.Print(`exited ...`)
+				return
+
+			default:
+				log.Print(`current idx:`, i)
+				i++
+				time.Sleep(time.Second)
+			}
+		}
+	}(ctx, &wg)
+	wg.Wait()
+
+	<-exited
+
+	log.Print(`exit normally`)
 }

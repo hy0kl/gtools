@@ -128,9 +128,10 @@ func ClearOnSignal(handler func()) {
 
 	// SIGINT  2  用户发送INTR字符(Ctrl+C)触发
 	// SIGTERM 15 结束程序(可以被捕获、阻塞或忽略)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(signalChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
-		<-signalChan
+		sig := <-signalChan
+		log.Printf(`got signal to exit, signal: %s`, sig)
 		handler()
 		os.Exit(0)
 	}()
