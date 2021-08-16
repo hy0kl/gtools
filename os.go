@@ -1,7 +1,6 @@
 package gtools
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -26,19 +25,19 @@ func Exists(file string) bool {
 }
 
 // Writable 文件/文件夹是否可写
-func Writable(file string) (bool, error) {
-	if !Exists(file) {
-		err := fmt.Errorf("file does not exist: `%s`", file)
-		return false, err
-	}
-
-	err := syscall.Access(file, syscall.O_RDWR)
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
+//func Writable(file string) (bool, error) {
+//	if !Exists(file) {
+//		err := fmt.Errorf("file does not exist: `%s`", file)
+//		return false, err
+//	}
+//
+//	err := syscall.Access(file, syscall.O_RDWR)
+//	if err != nil {
+//		return false, err
+//	}
+//
+//	return true, nil
+//}
 
 // IsDir 判断所给路径是否为文件夹
 func IsDir(file string) bool {
