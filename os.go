@@ -135,3 +135,33 @@ func ClearOnSignal(handler func()) {
 		os.Exit(0)
 	}()
 }
+
+// SetupSignalHandler setup signal handler
+func SetupSignalHandler(shutdownFunc func()) {
+	usrDefSignalChan := make(chan os.Signal, 1)
+
+	signal.Notify(usrDefSignalChan, syscall.SIGUSR1)
+	go func() {
+		buf := make([]byte, 1<<16)
+		for {
+			sig := <-usrDefSignalChan
+			if sig == syscall.SIGUSR1 {
+				stackLen := runtime.Stack(buf, true)
+				log.Printf("\n=== Got signal [%s] to dump goroutine stack. ===\n%s\n=== Finished dumping goroutine stack. ===\n", sig, buf[:stackLen])
+			}
+		}
+	}()
+
+	closeSignalChan := make(chan os.Signal, 1)
+	signal.Notify(closeSignalChan,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+
+	go func() {
+		sig := <-closeSignalChan
+		log.Printf("got signal to exit, signal: %v", sig)
+		shutdownFunc()
+	}()
+}
