@@ -1,17 +1,12 @@
 package gtools
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
-	"mime/multipart"
 	"net"
 	"net/http"
-	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -65,6 +60,9 @@ func httClientWithTimeout(timeoutConf HttpTimeout) (client *http.Client) {
 	return
 }
 
+// SimpleHttpClient
+// Deprecated: please use more advanced go-resty instead
+// see: https://github.com/go-resty/resty
 func SimpleHttpClient(reqMethod string, reqUrl string, reqHeaders map[string]string, reqBody string, timeoutConf HttpTimeout) (statusCode int, respHeader http.Header, respBody []byte, err error) {
 	req, err := http.NewRequest(reqMethod, reqUrl, strings.NewReader(reqBody))
 	if err != nil {
@@ -95,90 +93,6 @@ func SimpleHttpClient(reqMethod string, reqUrl string, reqHeaders map[string]str
 
 	respHeader = resp.Header
 	statusCode = resp.StatusCode
-
-	return
-}
-
-// 支持post原始多文件上传,同时携带表单数据
-func MultipartClient(reqUrl string, queryString map[string]interface{}, reqHeaders map[string]string, files map[string]string, timeoutConf HttpTimeout) (httpStatusCode int, respHeader http.Header, originByte []byte, err error) {
-	client := httClientWithTimeout(timeoutConf)
-
-	// 创建一个缓冲区对象,后面的要上传的body都存在这个缓冲区里
-	bodyBuf := &bytes.Buffer{}
-	bodyWriter := multipart.NewWriter(bodyBuf)
-
-	if len(files) <= 0 {
-		log.Println("no file for upload")
-	}
-	// name: 上传表单中字段名; localABS: 待上传文件路径
-	for fname, filename := range files {
-		// 创建第一个需要上传的文件,filepath.Base获取文件的名称
-		var fileWriter io.Writer
-		fileWriter, err = bodyWriter.CreateFormFile(fname, filepath.Base(filename))
-		if err != nil {
-			log.Println("the uploaded file does not exist. fname:", fname, ", filename:", filename, ", err:", err)
-			return
-		}
-
-		// 打开文件
-		var fd *os.File
-		fd, err = os.Open(filename)
-		if err != nil {
-			log.Println("Can NOT open file. fname:", fname, ", filename:", filename, ", err:", err)
-			return
-		}
-
-		// 把第文件流写入到缓冲区里去
-		_, err = io.Copy(fileWriter, fd)
-		_ = fd.Close()
-		if err != nil {
-			log.Println("Can NOT copy stream. fname:", fname, ", filename:", filename, ", err:", err)
-			return
-		}
-	}
-
-	// 写入附加字段必须在_,_=io.Copy(fileWriter,fd)后面
-	// 写入常规k,v参数
-	for k, v := range queryString {
-		_ = bodyWriter.WriteField(k, Stringify(v))
-	}
-
-	// 获取请求Content-Type类型,后面有用
-	contentType := bodyWriter.FormDataContentType()
-	_ = bodyWriter.Close()
-
-	// 创建一个post请求
-	req, err := http.NewRequest("POST", reqUrl, nil)
-	if err != nil {
-		log.Println("http.NewRequest has wrong. reqUrl:", reqUrl, ", queryString:", queryString, ", reqHeaders:", reqHeaders, ", files:", files)
-		return
-	}
-
-	for k, v := range reqHeaders {
-		req.Header.Set(k, v)
-	}
-	req.Header.Set("Content-Type", contentType)
-	// 转换类型
-	req.Body = ioutil.NopCloser(bodyBuf)
-	// 发送数据
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println("client.Do has wrong. reqUrl:", reqUrl, ", queryString:", queryString, ", reqHeaders:", reqHeaders, ", files:", files, ", err:", err)
-		return
-	}
-
-	//读取请求返回的数据
-	originByte, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println("ReadAll has wrong. reqUrl:", reqUrl, ", queryString:", queryString, ", reqHeaders:", reqHeaders, ", files:", files, ", err:", err)
-		return
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	httpStatusCode = resp.StatusCode
-	respHeader = resp.Header
 
 	return
 }
